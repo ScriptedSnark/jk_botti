@@ -790,339 +790,189 @@ void BotRemoveEnemy( bot_t &pBot, qboolean b_keep_tracking )
 
 
 //
-void BotFindEnemy( bot_t &pBot )
+void BotFindEnemy(bot_t& pBot)
 {
-//#define DEBUG_ENEMY_SELECT 1
 #if DEBUG_ENEMY_SELECT
-   char info[1024];
-   const char *enemy_type = "";
+	char info[1024];
+	const char* enemy_type = "";
 #endif
-   edict_t *pNewEnemy; 
-   Vector v_newenemy;
-   float nearestdistance;
-   qboolean chatprot = FALSE;
-   int i;
+	edict_t* pNewEnemy = nullptr;
+	Vector v_newenemy;
+	float nearestdistance = 4096.0f;
+	bool chatprot = false;
 
-   edict_t *pEdict = pBot.pEdict;
-   
-   if (b_botdontshoot)
-   {
-      pBot.f_bot_see_enemy_time = -1;  // so we won't keep reloading
-      pBot.v_bot_see_enemy_origin = Vector(-99999,-99999,-99999);
+	edict_t* pEdict = pBot.pEdict;
 
-      pEdict->v.button |= IN_RELOAD;  // press reload button
-      
-      BotRemoveEnemy(pBot, FALSE);
-      
-      return;
-   }
+	if (b_botdontshoot)
+	{
+		pBot.f_bot_see_enemy_time = -1;
+		pBot.v_bot_see_enemy_origin = Vector(-9999, -9999, -9999);
+		pEdict->v.button |= IN_RELOAD;
+		BotRemoveEnemy(pBot, FALSE);
+		return;
+	}
 
-   if (pBot.pBotEnemy != NULL)  // does the bot already have an enemy?
-   {
-      // if the enemy is dead?
-      // if the enemy is chat protected?
-      // is the enemy dead?, assume bot killed it
-      if (!IsAlive(pBot.pBotEnemy) || TRUE == (chatprot = IsPlayerChatProtected(pBot.pBotEnemy))) 
-      {
-         // the enemy is dead, jump for joy about 10% of the time
-         if (!chatprot && RANDOM_LONG2(1, 100) <= 10)
-            pEdict->v.button |= IN_JUMP;
+	// Enemy still alive?
+	if (pBot.pBotEnemy != nullptr)
+	{
+		if (!IsAlive(pBot.pBotEnemy) || (chatprot = IsPlayerChatProtected(pBot.pBotEnemy)))
+		{
+			if (!chatprot && RANDOM_LONG2(1, 100) <= 10)
+				pEdict->v.button |= IN_JUMP;
 
-         // don't have an enemy anymore so null out the pointer...
-         BotRemoveEnemy(pBot, FALSE);
-         
-         // level look
-         pEdict->v.idealpitch = 0;
-      }
-      else  // enemy is still alive
-      {
-         Vector vecEnd;
-         Vector vecPredEnemy;
+			BotRemoveEnemy(pBot, FALSE);
+			pEdict->v.idealpitch = 0;
+		}
+		else
+		{
+			Vector vecPredEnemy = UTIL_AdjustOriginWithExtent(pBot, GetPredictedPlayerPosition(pBot, pBot.pBotEnemy), pBot.pBotEnemy);
+			Vector vecEnd = vecPredEnemy;
 
-         vecPredEnemy = UTIL_AdjustOriginWithExtent(pBot, GetPredictedPlayerPosition(pBot, pBot.pBotEnemy), pBot.pBotEnemy);
+			if (FCanShootInHead(pEdict, pBot.pBotEnemy, vecPredEnemy))
+				vecEnd += pBot.pBotEnemy->v.view_ofs;
 
-         vecEnd = vecPredEnemy;
-         if(FCanShootInHead(pEdict, pBot.pBotEnemy, vecPredEnemy))
-            vecEnd += pBot.pBotEnemy->v.view_ofs;
-         
-         if( FInViewCone( vecEnd, pEdict ) && FVisibleEnemy( vecEnd, pEdict, pBot.pBotEnemy ))
-         {            
-            // face the enemy
-            Vector v_enemy = vecPredEnemy - pEdict->v.origin;
-            Vector bot_angles = UTIL_VecToAngles( v_enemy );
+			if (FInViewCone(vecEnd, pEdict) && FVisibleEnemy(vecEnd, pEdict, pBot.pBotEnemy))
+			{
+				Vector v_enemy = vecPredEnemy - pEdict->v.origin;
+				Vector bot_angles = UTIL_VecToAngles(v_enemy);
+				pEdict->v.ideal_yaw = bot_angles.y;
+				BotFixIdealYaw(pEdict);
+				pBot.f_bot_see_enemy_time = gpGlobals->time;
+				pBot.v_bot_see_enemy_origin = UTIL_GetOrigin(pBot.pBotEnemy);
+				return;
+			}
 
-            pEdict->v.ideal_yaw = bot_angles.y;
+			if (pBot.f_bot_see_enemy_time > 0 && pBot.f_bot_see_enemy_time + 0.5 >= gpGlobals->time)
+			{
+				BotRemoveEnemy(pBot, TRUE);
+				pEdict->v.idealpitch = 0;
+			}
+		}
+	}
 
-            BotFixIdealYaw(pEdict);
+   /*
+	// Search for breakables
+	for (breakable_list_t* pBreakable = nullptr; (pBreakable = UTIL_FindBreakable(pBreakable)) != nullptr;)
+	{
+		if (FNullEnt(pBreakable->pEdict)) continue;
+		if ((int)pBreakable->pEdict->v.takedamage == DAMAGE_NO || pBreakable->pEdict->v.solid == SOLID_NOT ||
+			pBreakable->pEdict->v.deadflag == DEAD_DEAD || !pBreakable->material_breakable || pBreakable->pEdict->v.health <= 0)
+			continue;
+		if (pBreakable->pEdict->v.health > 8000) continue;
 
-            // keep track of when we last saw an enemy
-            pBot.f_bot_see_enemy_time = gpGlobals->time;
-            pBot.v_bot_see_enemy_origin = UTIL_GetOrigin(pBot.pBotEnemy);
+		Vector v_origin = UTIL_GetOriginWithExtent(pBot, pBreakable->pEdict);
+		if (v_origin.is_zero_vector()) continue;
 
-            return; // don't change pBot.pBotEnemy
-         }
-         
-         // enemy has gone out of bot's line of sight
-         if( pBot.f_bot_see_enemy_time > 0 && pBot.f_bot_see_enemy_time + 0.5 >= gpGlobals->time)
-         {
-            // start sound tracking
-            BotRemoveEnemy(pBot, TRUE);
-            
-            // level look
-            pEdict->v.idealpitch = 0;
-         }
-      }
-   }
+		float distance = GetModifiedEnemyDistance(pBot, v_origin - pEdict->v.origin).Length();
+		if (distance >= nearestdistance) continue;
 
-   pNewEnemy = NULL;
-   v_newenemy = Vector(0,0,0);
-   nearestdistance = 99999;
+		if (!(FInViewCone(v_origin, pEdict) && FVisible(v_origin, pEdict, pBreakable->pEdict))) continue;
 
-   if (pNewEnemy == NULL)
-   {
-      breakable_list_t * pBreakable;
-      edict_t *pMonster;
-      Vector vecEnd;
-
-      // search func_breakables that we collected at map start (We need to collect in order to get the material value)
-      pBreakable = NULL;
-      while((pBreakable = UTIL_FindBreakable(pBreakable)) != NULL) 
-      {
-         // removed? null?
-         if(FNullEnt (pBreakable->pEdict))
-            continue;
-         
-         // cannot take damage
-         if((int)pBreakable->pEdict->v.takedamage == DAMAGE_NO ||
-            pBreakable->pEdict->v.solid == SOLID_NOT || 
-            pBreakable->pEdict->v.deadflag == DEAD_DEAD ||
-            !pBreakable->material_breakable ||
-            pBreakable->pEdict->v.health <= 0)
-            continue;
-
-         if (pBreakable->pEdict->v.health > 8000)
-	    continue; // skip breakables with large health
-         
-         Vector v_origin = UTIL_GetOriginWithExtent(pBot, pBreakable->pEdict);
-
-         // 0,0,0 is considered invalid
-         if(v_origin.is_zero_vector())
-            continue;
-         
-         float distance = GetModifiedEnemyDistance(pBot, v_origin - pEdict->v.origin).Length();
-         if (distance >= nearestdistance)
-            continue;
-         
-         // see if bot can't see ...
-         if (!(FInViewCone( v_origin, pEdict ) && FVisible( v_origin, pEdict, pBreakable->pEdict )))
-            continue;
-
-         nearestdistance = distance;
-         pNewEnemy = pBreakable->pEdict;
-         v_newenemy = v_origin;
-
+		nearestdistance = distance;
+		pNewEnemy = pBreakable->pEdict;
+		v_newenemy = v_origin;
 #if DEBUG_ENEMY_SELECT
-	 enemy_type = "breakable";
-	 snprintf(info, sizeof(info), "%s[or:e-%.1f:%.1f:%.1f, or:o-%.1f:%.1f:%.1f, mins-%.1f:%.1f:%.1f, maxs-%.1f:%.1f:%.1f, absmin-%.1f:%.1f:%.1f, size-%.1f:%.1f:%.1f, td-%.0f, s-%d, df-%d, h-%.0f]",
-		  enemy_type, v_origin.x, v_origin.y, v_origin.z,
-		  UTIL_GetOrigin(pBreakable->pEdict).x, UTIL_GetOrigin(pBreakable->pEdict).y, UTIL_GetOrigin(pBreakable->pEdict).z,
-		  pBreakable->pEdict->v.mins.x, pBreakable->pEdict->v.mins.y, pBreakable->pEdict->v.mins.z,
-		  pBreakable->pEdict->v.maxs.x, pBreakable->pEdict->v.maxs.y, pBreakable->pEdict->v.maxs.z,
-	          pBreakable->pEdict->v.absmin.x, pBreakable->pEdict->v.absmin.y, pBreakable->pEdict->v.absmin.z,
-		  pBreakable->pEdict->v.size.x, pBreakable->pEdict->v.size.y, pBreakable->pEdict->v.size.z,
-		  pBreakable->pEdict->v.takedamage,
-		  pBreakable->pEdict->v.solid,
-		  pBreakable->pEdict->v.deadflag,
-		  pBreakable->pEdict->v.health
- 		);
-	 enemy_type = info;
+		enemy_type = "breakable";
 #endif
-      }
+	}
 
-      // search the world for monsters...
-      pMonster = NULL;
-      while (!FNullEnt (pMonster = UTIL_FindEntityInSphere (pMonster, pEdict->v.origin, 1000)))
-      {
-         if (!(pMonster->v.flags & FL_MONSTER) || (int)pMonster->v.takedamage == DAMAGE_NO)
-            continue; // discard anything that is not a monster
-                  
-         if (!IsAlive (pMonster))
-            continue; // discard dead or dying monsters
+	// Search for monsters
+	int monsterChecks = 0;
+	for (edict_t* pMonster = nullptr; !FNullEnt(pMonster = UTIL_FindEntityInSphere(pMonster, pEdict->v.origin, 1000));)
+	{
+		if (++monsterChecks > 384) break;
 
-         // 0,0,0 is considered invalid
-         if(pMonster->v.origin.is_zero_vector())
-            continue;
+		if (!(pMonster->v.flags & FL_MONSTER) || (int)pMonster->v.takedamage == DAMAGE_NO || !IsAlive(pMonster)) continue;
+		if (FIsClassname(pMonster, "hornet") || FIsClassname(pMonster, "monster_snark")) continue;
+		if (pMonster->v.health > 4000) continue;
 
-         if (FIsClassname(pMonster, "hornet"))
-            continue; // skip hornets
-         
-         if (FIsClassname(pMonster, "monster_snark"))
-            continue; // skip snarks
+		Vector vecEnd = pMonster->v.origin + pMonster->v.view_ofs;
+		float distance = GetModifiedEnemyDistance(pBot, UTIL_GetOriginWithExtent(pBot, pMonster) - pEdict->v.origin).Length();
+		if (distance >= nearestdistance) continue;
 
-         if (pMonster->v.health > 4000)
-	    continue; // skip monsters with large health
+		if (!(FInViewCone(vecEnd, pEdict) && FVisibleEnemy(vecEnd, pEdict, pMonster))) continue;
 
-         float distance = GetModifiedEnemyDistance(pBot, UTIL_GetOriginWithExtent(pBot, pMonster) - pEdict->v.origin).Length();
-         if (distance >= nearestdistance)
-            continue;
+		nearestdistance = distance;
+		pNewEnemy = pMonster;
+		v_newenemy = pMonster->v.origin;
+#if DEBUG_ENEMY_SELECT
+		enemy_type = "monster";
+#endif
+	}
+*/
 
-         vecEnd = pMonster->v.origin + pMonster->v.view_ofs;
+	// search the world for players...
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		if (i > 32) break;
 
-         // see if bot can't see ...
-         if (!(FInViewCone( vecEnd, pEdict ) && FVisibleEnemy( vecEnd, pEdict, pMonster )))
-            continue;
+		edict_t* pPlayer = INDEXENT(i);
+		if (!pPlayer || pPlayer->free || pPlayer == pEdict || FBitSet(pPlayer->v.flags, FL_PROXY)) continue;
+		if (b_observer_mode && !(FBitSet(pPlayer->v.flags, FL_FAKECLIENT) || FBitSet(pPlayer->v.flags, FL_THIRDPARTYBOT))) continue;
+		if (!IsAlive(pPlayer)) continue;
+		if (IsPlayerChatProtected(pPlayer)) continue;
+		if (AreTeamMates(pPlayer, pEdict)) continue;
 
-         nearestdistance = distance;
-         pNewEnemy = pMonster;
-         v_newenemy = pMonster->v.origin;
+		float distance = GetModifiedEnemyDistance(pBot, UTIL_GetOriginWithExtent(pBot, pPlayer) - pEdict->v.origin).Length();
+		if (distance >= nearestdistance) continue;
+
+		float time_since_respawn = UTIL_GetTimeSinceRespawn(pPlayer);
+		if (time_since_respawn != -1.0f && time_since_respawn < skill_settings[pBot.bot_skill].respawn_react_delay)
+			continue;
+
+		Vector vecEnd = GetGunPosition(pPlayer);
+		if (!(FInViewCone(vecEnd, pEdict) && FVisibleEnemy(vecEnd, pEdict, pPlayer))) continue;
+
+		nearestdistance = distance;
+		pNewEnemy = pPlayer;
+		v_newenemy = vecEnd;
+#if DEBUG_ENEMY_SELECT
+		enemy_type = "player";
+#endif
+	}
+
+	bool is_sound_enemy = false;
+	if (FNullEnt(pNewEnemy) && pBot.f_next_find_visible_sound_enemy_time <= gpGlobals->time)
+	{
+		pNewEnemy = BotFindVisibleSoundEnemy(pBot);
+		pBot.f_next_find_visible_sound_enemy_time = gpGlobals->time + 0.2f;
+
+		if (!FNullEnt(pNewEnemy))
+		{
+			is_sound_enemy = true;
+#if DEBUG_ENEMY_SELECT
+			enemy_type = "sound-enemy";
+#endif
+		}
+	}
+
+	if (!FNullEnt(pNewEnemy))
+	{
+		Vector v_enemy = v_newenemy - pEdict->v.origin;
+		Vector bot_angles = UTIL_VecToAngles(v_enemy);
+		pEdict->v.ideal_yaw = bot_angles.y;
+		BotFixIdealYaw(pEdict);
+		pBot.f_bot_see_enemy_time = gpGlobals->time;
+		pBot.v_bot_see_enemy_origin = UTIL_GetOrigin(pNewEnemy);
+		BotResetReactionTime(pBot, is_sound_enemy);
 
 #if DEBUG_ENEMY_SELECT
-	 enemy_type = "monster";
-	 snprintf(info, sizeof(info), "%s[or:o-%.1f:%.1f:%.1f, or:g-%.1f:%.1f:%.1f, td-%.0f(%f), df-%d, h-%.0f, f-%d, s-%d]",
-		  enemy_type,
-		  pMonster->v.origin.x, pMonster->v.origin.y, pMonster->v.origin.z,
-		  UTIL_GetOrigin(pMonster).x, UTIL_GetOrigin(pMonster).y, UTIL_GetOrigin(pMonster).z,
-		  pMonster->v.takedamage, pMonster->v.takedamage - (long long)pMonster->v.takedamage,
-		  pMonster->v.deadflag,
-		  pMonster->v.health,
-		  pMonster->v.flags,
-		  pMonster->v.solid
-		);
-	 enemy_type = info;
-#endif
-      }
-
-      // search the world for players...
-      for (i = 1; i <= gpGlobals->maxClients; i++)
-      {
-         Vector v_player;
-         edict_t *pPlayer = INDEXENT(i);
-
-         // skip invalid players and skip self (i.e. this bot)
-         if ((pPlayer) && (!pPlayer->free) && (pPlayer != pEdict) && !FBitSet(pPlayer->v.flags, FL_PROXY))
-         {
-            if ((b_observer_mode) && !(FBitSet(pPlayer->v.flags, FL_FAKECLIENT) || FBitSet(pPlayer->v.flags, FL_THIRDPARTYBOT)))
-               continue;
-
-            // 0,0,0 is considered invalid
-            if(pPlayer->v.origin.is_zero_vector())
-               continue;
-
-            // skip this player if not alive (i.e. dead or dying)
-            if (!IsAlive(pPlayer))
-               continue;
-
-            // skip this player if facing wall
-            if(IsPlayerChatProtected(pPlayer))
-               continue;
-
-            // don't target teammates
-            if(AreTeamMates(pPlayer, pEdict))
-               continue;
-            
-            float distance = GetModifiedEnemyDistance(pBot, UTIL_GetOriginWithExtent(pBot, pPlayer) - pEdict->v.origin).Length();
-            if (distance >= nearestdistance)
-               continue;
-              
-            // skip this player if respawned lately
-            float time_since_respawn = UTIL_GetTimeSinceRespawn(pPlayer);
-            if(time_since_respawn != -1.0 && time_since_respawn < skill_settings[pBot.bot_skill].respawn_react_delay)
-               continue;
-
-            vecEnd = GetGunPosition(pPlayer);
-
-            // see if bot can't see the player...
-            if (!(FInViewCone( vecEnd, pEdict ) && FVisibleEnemy( vecEnd, pEdict, pPlayer )))
-               continue;
-
-            nearestdistance = distance;
-            pNewEnemy = pPlayer;
-            v_newenemy = v_player;
-
-#if DEBUG_ENEMY_SELECT
-	    enemy_type = "player";
-	    snprintf(info, sizeof(info), "%s[or:o-%.1f:%.1f:%.1f, or:g-%.1f:%.1f:%.1f, mins-%.1f:%.1f:%.1f, maxs-%.1f:%.1f:%.1f, absmin-%.1f:%.1f:%.1f, size-%.1f:%.1f:%.1f, td-%.0f(%f), df-%d, h-%.0f, f-%d, s-%d]",
-		  enemy_type,
-		  pPlayer->v.origin.x, pPlayer->v.origin.y, pPlayer->v.origin.z,
-		  UTIL_GetOrigin(pPlayer).x, UTIL_GetOrigin(pPlayer).y, UTIL_GetOrigin(pPlayer).z,
-		  pPlayer->v.mins.x, pPlayer->v.mins.y, pPlayer->v.mins.z,
-		  pPlayer->v.maxs.x, pPlayer->v.maxs.y, pPlayer->v.maxs.z,
-	          pPlayer->v.absmin.x, pPlayer->v.absmin.y, pPlayer->v.absmin.z,
-		  pPlayer->v.size.x, pPlayer->v.size.y, pPlayer->v.size.z,
-		  pPlayer->v.takedamage, pPlayer->v.takedamage - (long long)pPlayer->v.takedamage,
-		  pPlayer->v.deadflag,
-		  pPlayer->v.health,
-		  pPlayer->v.flags,
-		  pPlayer->v.solid
-		);
-	    enemy_type = info;
-#endif
-         }
-      }
-   }
-
-   qboolean is_sound_enemy = FALSE;
-
-   // check sounds for any potential targets
-   if (FNullEnt(pNewEnemy) && pBot.f_next_find_visible_sound_enemy_time <= gpGlobals->time)
-   {
-      // only run this 5fps
-      pNewEnemy = BotFindVisibleSoundEnemy(pBot);
-      pBot.f_next_find_visible_sound_enemy_time = gpGlobals->time + 0.2f;
-      
-      if(!FNullEnt(pNewEnemy))
-      {
-         //char msg[32];
-         //safevoid_snprintf(msg, sizeof(msg), "Found sound enemy! %d", RANDOM_LONG2(0,0x7fffffff));
-         //UTIL_HostSay(pEdict, 0, msg);
-         
-         is_sound_enemy = TRUE;
-
-#if DEBUG_ENEMY_SELECT
-         enemy_type = "sound-enemy";
-#endif
-      }
-   }
-
-   // 
-   if (!FNullEnt(pNewEnemy))
-   {
-      // face the enemy
-      Vector v_enemy = v_newenemy - pEdict->v.origin;
-      Vector bot_angles = UTIL_VecToAngles( v_enemy );
-
-      pEdict->v.ideal_yaw = bot_angles.y;
-
-      BotFixIdealYaw(pEdict);
-
-      // keep track of when we last saw an enemy
-      pBot.f_bot_see_enemy_time = gpGlobals->time;
-      pBot.v_bot_see_enemy_origin = UTIL_GetOrigin(pNewEnemy);
-
-      BotResetReactionTime(pBot, is_sound_enemy);
-
-#if DEBUG_ENEMY_SELECT
-      if(pBot.waypoint_goal != -1)
-         UTIL_ConsolePrintf("[%s] Found enemy, forget goal: %d -> %d", pBot.name, pBot.waypoint_goal, -1);
-
-      UTIL_ConsolePrintf("[%s] Found enemy, type: %s", pBot.name, enemy_type);
+		if (pBot.waypoint_goal != -1)
+			UTIL_ConsolePrintf("[%s] Found enemy, forget goal: %d -> %d", pBot.name, pBot.waypoint_goal, -1);
+		UTIL_ConsolePrintf("[%s] Found enemy, type: %s", pBot.name, enemy_type);
 #endif
 
-      // clear goal waypoint
-      pBot.waypoint_goal = -1;
-      pBot.wpt_goal_type = WPT_GOAL_ENEMY;
-   }
+		pBot.waypoint_goal = -1;
+		pBot.wpt_goal_type = WPT_GOAL_ENEMY;
+	}
+	else if ((pBot.f_bot_see_enemy_time > 0) && ((pBot.f_bot_see_enemy_time + 5.0f) <= gpGlobals->time))
+	{
+		pBot.f_bot_see_enemy_time = -1;
+		pBot.v_bot_see_enemy_origin = Vector(-9999, -9999, -9999);
+		pEdict->v.button |= IN_RELOAD;
+	}
 
-   // has the bot NOT seen an ememy for at least 5 seconds (time to reload)?
-   else if ((pBot.f_bot_see_enemy_time > 0) && ((pBot.f_bot_see_enemy_time + 5.0) <= gpGlobals->time))
-   {
-      pBot.f_bot_see_enemy_time = -1;  // so we won't keep reloading
-      pBot.v_bot_see_enemy_origin = Vector(-99999,-99999,-99999);
-
-      pEdict->v.button |= IN_RELOAD;  // press reload button
-   }
-   
-   pBot.pBotEnemy = pNewEnemy;
+	pBot.pBotEnemy = pNewEnemy;
 }
 
 
@@ -1879,4 +1729,3 @@ qboolean BotShootTripmine( bot_t &pBot )
    pBot.pBotEnemy = NULL;
    return ret;
 }
-
