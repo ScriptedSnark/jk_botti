@@ -930,7 +930,7 @@ void BotCreate( const char *skin, const char *name, int skill, int top_color, in
 //
 void BotReplaceConnectionTime(const char * name, float * timeslot)
 {
-   for(int i = 0; i < 32; i++)
+   for(int i = 0; i < 64; i++)
    {
       bot_t &pBot = bots[i];
       

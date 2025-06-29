@@ -203,7 +203,7 @@ static int Spawn( edict_t *pent )
          //  note: posdata clean up first to prevent mem-leaks.
          //  note2: WaypointInit (and maybe others) set different than zero init value for array object, 
          //   memset players need to be before anything else (except posdata free)
-         for(int i = 0; i < 32; i++)
+         for(int i = 0; i < 64; i++)
             free_posdata_list(i);
          memset(players, 0, sizeof(players));
          
@@ -243,7 +243,7 @@ static int Spawn( edict_t *pent )
          waypoint_time = -1.0;
          spawn_time_reset = FALSE;
 
-         for(int i = 0; i < 32; i++)
+         for(int i = 0; i < 64; i++)
             bots[i].is_used = FALSE;
          
          num_bots = 0;
@@ -450,7 +450,7 @@ static void ClientDisconnect( edict_t *pEntity )
       if (idx < gpGlobals->maxClients && idx >= 0)
          players[idx].pEdict = NULL;
 
-      for (i=0; i < 32; i++)
+      for (i=0; i < 64; i++)
       {
          if (bots[i].pEdict == pEntity)
          {
@@ -720,7 +720,7 @@ static void StartFrame( void )
             // get largest team, count by bots only
                 GetSpecificTeam(balanceskin, sizeof(balanceskin), FALSE, TRUE, TRUE) )
             {
-               for(int i = 0; i < 32; i++)
+               for(int i = 0; i < 64; i++)
                {
                   char teamstr[MAX_TEAMNAME_LENGTH];
                   
@@ -931,7 +931,7 @@ C_DLLEXPORT int Meta_Detach (PLUG_LOADTIME now, PL_UNLOAD_REASON reason)
    
    // free memory
    WaypointInit();
-   for(int i = 0; i < 32; i++)
+   for(int i = 0; i < 64; i++)
       free_posdata_list(i);
    UTIL_FreeFuncBreakables();
    FreeCfgBotRecord();

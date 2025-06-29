@@ -42,7 +42,7 @@ void SaveSound(edict_t * pEdict, const Vector & origin, int volume, int channel,
    int bot_index = -1;
    
    // check if bot is close to sound and mark as owner if it is
-   for (int i = 0; i < 32; i++)
+   for (int i = 0; i < 64; i++)
    {
       if(bots[i].is_used)
       {

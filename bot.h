@@ -54,7 +54,7 @@ typedef int BOOL;
 
 // teamplay_gamerules.h
 #define MAX_TEAMNAME_LENGTH     16
-#define MAX_TEAMS               32
+#define MAX_TEAMS               64
 #define TEAMPLAY_TEAMLISTLENGTH (MAX_TEAMS*MAX_TEAMNAME_LENGTH)
 
 
@@ -312,7 +312,7 @@ typedef struct
    int total_counter;
 } bot_t;
 
-#define MAX_TEAMS 32
+#define MAX_TEAMS 64
 #define MAX_TEAMNAME_LENGTH 16
 
 #define MAX_FLAGS  5

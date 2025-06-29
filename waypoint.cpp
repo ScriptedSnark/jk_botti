@@ -220,7 +220,7 @@ void WaypointInit(void)
 
    num_waypoints = 0;
 
-   for(i = 0; i < 32; i++)
+   for(i = 0; i < 64; i++)
       players[i].last_waypoint = -1;
    
    memset(&spawnpoints, 0, sizeof(spawnpoints));
