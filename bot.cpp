@@ -254,7 +254,7 @@ static void BotPickLogo(bot_t &pBot)
    {
       used = FALSE;
 
-      for (index=0; index < 32; index++)
+      for (index=0; index < 64; index++)
       {
          if (bots[index].is_used)
          {
@@ -808,7 +808,7 @@ void BotCreate( const char *skin, const char *name, int skill, int top_color, in
       c_name[sizeof(c_name)-1] = 0;  // make sure c_name is null terminated
    }
    
-   if(UTIL_GetBotCount() < 32)
+   if(UTIL_GetBotCount() < 64)
       BotEnt = (*g_engfuncs.pfnCreateFakeClient)( c_name );
    else
       BotEnt = NULL;
@@ -827,10 +827,10 @@ void BotCreate( const char *skin, const char *name, int skill, int top_color, in
       UTIL_ConsolePrintf("Creating bot...\n");
 
       index = 0;
-      while ((bots[index].is_used) && (index < 32))
+      while ((bots[index].is_used) && (index < 64))
          index++;
 
-      if (index == 32)
+      if (index == 64)
       {
          UTIL_ConsolePrintf("Can't create bot!\n");
          return;

@@ -904,7 +904,7 @@ void BotFindEnemy(bot_t& pBot)
 	// search the world for players...
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		if (i > 32) break;
+		if (i > 64) break;
 
 		edict_t* pPlayer = INDEXENT(i);
 		if (!pPlayer || pPlayer->free || pPlayer == pEdict || FBitSet(pPlayer->v.flags, FL_PROXY)) continue;

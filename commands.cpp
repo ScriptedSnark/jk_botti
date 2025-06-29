@@ -103,7 +103,7 @@ const cfg_bot_record_t * GetUnusedCfgBotRecord(void)
    {
       int used = 0;
       
-      for(int index = 0; index < 32; index++)
+      for(int index = 0; index < 64; index++)
       {
          if(bots[index].is_used)
          {
@@ -1389,7 +1389,7 @@ void jk_botti_ServerCommand (void)
       int count = 0;
       
       // kick all bots.
-      for (int index = 0; index < 32; index++)
+      for (int index = 0; index < 64; index++)
       {
          if (bots[index].is_used)  // is this slot used?
          {

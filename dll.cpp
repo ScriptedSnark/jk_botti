@@ -925,7 +925,7 @@ C_DLLEXPORT int Meta_Detach (PLUG_LOADTIME now, PL_UNLOAD_REASON reason)
    }
 
    // kick any bot off of the server after time/frag limit...
-   for (int index = 0; index < 32; index++)
+   for (int index = 0; index < 64; index++)
       if (bots[index].is_used)  // is this slot used?
          BotKick(bots[index]);
    

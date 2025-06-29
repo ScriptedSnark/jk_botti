@@ -182,7 +182,7 @@ int UTIL_GetBotIndex(const edict_t *pEdict)
 {
    int index;
 
-   for (index=0; index < 32; index++)
+   for (index=0; index < 64; index++)
       if (bots[index].pEdict == pEdict)
          return index;
 

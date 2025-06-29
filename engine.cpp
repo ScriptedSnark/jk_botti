@@ -189,7 +189,7 @@ static void pfnChangeLevel(char* s1, char* s2)
       RETURN_META (MRES_IGNORED);
    
    // kick any bot off of the server after time/frag limit...
-   for (int index = 0; index < 32; index++)
+   for (int index = 0; index < 64; index++)
       if (bots[index].is_used)  // is this slot used?
          BotKick(bots[index]);
 
