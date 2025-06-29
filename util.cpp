@@ -20,7 +20,7 @@
 
 #define BREAKABLE_LIST_MAX 1024
 
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern qboolean is_team_play;
 
 static breakable_list_t *g_breakable_list = NULL;
@@ -324,10 +324,10 @@ int UTIL_GetBotCount(void)
 //
 int UTIL_PickRandomBot(void)
 {
-   int bot_index_list[32];
+   int bot_index_list[64];
    int num_bots = 0;
    
-   for(int i = 0; i < 32; i++)
+   for(int i = 0; i < 64; i++)
       if(bots[i].is_used)  // is this slot used?
          bot_index_list[num_bots++] = i;
    

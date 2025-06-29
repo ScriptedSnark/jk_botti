@@ -44,7 +44,7 @@ extern qboolean g_waypoint_updated;
 extern int num_waypoints;  // number of waypoints currently in use
 extern WAYPOINT waypoints[MAX_WAYPOINTS];
 extern float wp_display_time[MAX_WAYPOINTS];
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern qboolean b_observer_mode;
 extern qboolean b_botdontshoot;
 extern qboolean g_in_intermission;
@@ -101,7 +101,7 @@ qboolean need_to_open_cfg = TRUE;
 float bot_cfg_pause_time = 0.0;
 qboolean spawn_time_reset = FALSE;
 float waypoint_time = 0.0;
-player_t players[32];
+player_t players[64];
 
 static void (*old_PM_PlaySound)(int channel, const char *sample, float volume, float attenuation, int fFlags, int pitch) = NULL;
 static struct playermove_s *old_ppmove = NULL;

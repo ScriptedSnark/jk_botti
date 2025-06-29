@@ -65,7 +65,7 @@ extern qboolean g_team_limit;
 extern int number_skins;
 extern skin_t bot_skins[MAX_SKINS];
 
-bot_t bots[32];   // max of 32 bots in a game
+bot_t bots[64];   // max of 32 bots in a game
 qboolean b_observer_mode = FALSE;
 qboolean b_botdontshoot = FALSE;
 

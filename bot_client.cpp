@@ -25,7 +25,7 @@
                        DMG_DROWNRECOVER | DMG_ACID | DMG_SLOWBURN | \
                        DMG_SLOWFREEZE | 0xFF000000)
 
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern int num_logos;
 
 extern int bot_taunt_count;

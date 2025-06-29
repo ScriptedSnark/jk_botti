@@ -40,7 +40,7 @@ int recent_bot_whine[5];
 int recent_bot_endgame[5];
 
 int player_count;
-char player_names[32][33];  // 32 players max, 32 chars + null
+char player_names[64][33];  // 32 players max, 32 chars + null
 
 extern int bot_chat_tag_percent;
 extern int bot_chat_drop_percent;

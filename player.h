@@ -42,6 +42,6 @@ typedef struct player_s
 
 } player_t;
 
-extern player_t players[32];
+extern player_t players[64];
 
 #endif

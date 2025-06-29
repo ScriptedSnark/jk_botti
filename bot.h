@@ -366,7 +366,7 @@ typedef struct
    char name[16];				// must be null terminated
 } lumpinfo_t;
 
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern int submod_id;
 extern int m_spriteTexture;
 

@@ -36,7 +36,7 @@ extern qboolean g_waypoint_updated;
 extern int num_waypoints;  // number of waypoints currently in use
 extern WAYPOINT waypoints[MAX_WAYPOINTS];
 extern float wp_display_time[MAX_WAYPOINTS];
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern qboolean b_observer_mode;
 extern qboolean b_botdontshoot;
 extern qboolean g_in_intermission;

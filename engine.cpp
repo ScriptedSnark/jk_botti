@@ -20,7 +20,7 @@
 #include "bot_weapons.h"
 
 extern enginefuncs_t g_engfuncs;
-extern bot_t bots[32];
+extern bot_t bots[64];
 extern qboolean isFakeClientCommand;
 extern int fake_arg_count;
 
